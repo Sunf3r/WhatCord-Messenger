@@ -8,7 +8,7 @@ Someday I will update this again.
 
 - Recommended NodeJS version: 14.18.3 or higher
 
-```
+```bash
 git clone https://github.com/Heryson1616/WhatCord-Messenger
 cd WhatCord-Messenger
 npm i -g typescript
@@ -34,6 +34,6 @@ npm install
 ```
 
 And to start:
-```
+```bash
 npm start
 ```
