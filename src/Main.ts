@@ -1,8 +1,9 @@
-import Whatsapp from "@open-wa/wa-automate";
+import whatsApp, { create, NotificationLanguage } from "@open-wa/wa-automate";
 import Eris from "eris";
 import Events from "./RunEvents";
 import express, { Request, Response } from "express"
 import moment from "moment-timezone";
+import settings from "./JSON/settings.json"
 
 type err = {
     stack: string;
@@ -23,7 +24,7 @@ console.log = function () {
     return console.info(`\x1B[${color}m${str}\x1B[0m`);
 }
 console.error = function () {
-    return console.log('ANTI-CRASH', 'ERRO GENÉRICO:', String(arguments['0'].stack.slice(0, 256)), 41);
+    return console.log('ANTI-CRASH', 'ERRO GENÉRICO:', String(arguments['0'].stack).slice(0, 256), 41);
 }
 
 console.clear();
@@ -39,36 +40,35 @@ initClients()
 
 
 async function initClients() {
-    return console.info(Whatsapp)
-    const whatsappClient = await Whatsapp.create({
+    const whatsappClient = await create({
         sessionId: "client",
         multiDevice: true,
         authTimeout: 60,
         blockCrashLogs: true,
-        disableSpins: true, // remove expansive logs
+        disableSpins: false, // remove expansive logs
         headless: false, // hide chromium window
-        hostNotificationLang: Whatsapp.NotificationLanguage.PTBR,
+        hostNotificationLang: NotificationLanguage.PTBR,
         logConsole: false,
         popup: false,
         qrTimeout: 0,
     })
-    whatsappClient.onMessage(async (message: Whatsapp.Message) => EventEmmiter.WhatsAppMessageCreate(message));
 
     //@ts-ignore
-    const discord: Eris.Client = await new Eris(`Bot ${process.env.DISCORD_BOT_TOKEN}`, {
+    const discord: Eris.Client = (new Eris(`Bot ${settings.discord.BOT_TOKEN}`, {
         intents: ['guilds', 'guildMessages'],
         maxShards: 1
-    } as Eris.ClientOptions)
-        .connect();
+    } as Eris.ClientOptions))
+        .on("ready", () => {
+            console.log('GATEWAY', `Sessão iniciada como ${discord.user.username}#${discord.user.discriminator}`, 33);
+            discord.editStatus('dnd', { type: 3, name: 'o celular do Legend caindo na privada'});
+        })
+        .on("error", (err: Error) => console.log('DISCORD', String(err.stack).slice(0, 256), 41));
+    await discord.connect();
+
 
     const EventEmmiter = new Events(discord, whatsappClient);
-
-    discord
-        .on("ready", () => console.log('GATEWAY', `Sessão iniciada como ${discord.user.username}#${discord.user.discriminator}`, 33))
-        .on("error", (err) => console.log('DISCORD', String(err.stack).slice(0, 256), 41))
-        .on("messageCreate", (message: Eris.Message) => EventEmmiter.DiscordMessageCreate(message));
-
-    return;
+    whatsappClient.onMessage(async (message: whatsApp.Message) => EventEmmiter.WhatsAppMessageCreate(message));
+    discord.on("messageCreate", (message: Eris.Message) => EventEmmiter.DiscordMessageCreate(message));
 }
 
 process

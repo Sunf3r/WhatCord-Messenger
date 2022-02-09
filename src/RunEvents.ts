@@ -26,8 +26,10 @@ export default class Events {
     }
 
     async WhatsAppMessageCreate(message: WhatsApp.Message) {
-        if (message.text === 'getID' && message.sender.id.replace('@c.us', '') !== whatsApp.OWNER_NUMBER)
-            return this.groupID = message.chatId;
+        if (message.text === 'getID' && message.sender.id.replace('@c.us', '') !== whatsApp.OWNER_NUMBER) {
+            this.groupID = message.chatId;
+            return console.info(`ID of ${message.chat.name}: ${message.chatId}`);
+        }
 
         if (message.chatId != this.groupID) return;
 
