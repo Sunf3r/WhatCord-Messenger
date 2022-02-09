@@ -1,23 +1,36 @@
 {
-  "name": "whatsapp-discordbot",
-  "version": "0.2.0",
-  "description": "",
-  "main": "dist/Main.js",
-  "scripts": {
-    "build": "tsc",
-    "start": "npm run build && node --expose-gc dist/Main.js",
-    "dev": "node --expose-gc dist/Main.js --dev"
-  },
-  "keywords": [],
-  "author": "Heryson1616",
-  "license": "ISC",
-  "dependencies": {
-    "@open-wa/wa-automate": "^4.23.17",
-    "eris": "^0.16.1",
-    "moment-timezone": "^0.5.34",
-    "npm": "^7.9.0"
-  },
-  "devDependencies": {
-    "@types/express": "^4.17.13"
-  }
+    "name": "whatcord-messenger",
+    "version": "0.0.3",
+    "description": "A simple bot that sends messages from a group on WhatsApp to Discord (and vice versa)",
+    "main": "dist/Main.js",
+    "dependencies": {
+        "@open-wa/wa-automate": "^4.30.12",
+        "@types/express": "^4.17.13",
+        "eris": "^0.16.1",
+        "express": "^4.17.2",
+        "moment-timezone": "^0.5.34",
+        "npm": "^7.9.0"
+    },
+    "devDependencies": {},
+    "scripts": {
+        "build": "tsc",
+        "start": "npm run build && node --expose-gc dist/Main.js",
+        "dev": "node --expose-gc dist/Main.js --dev"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Heryson1616/WhatCord-Messenger.git"
+    },
+    "keywords": [
+        "WhatsApp",
+        "Discord",
+        "Eris",
+        "TypeScript"
+    ],
+    "author": "Heryson1616",
+    "license": "GPL-3.0",
+    "bugs": {
+        "url": "https://github.com/Heryson1616/WhatCord-Messenger/issues"
+    },
+    "homepage": "https://github.com/Heryson1616/WhatCord-Messenger#readme"
 }

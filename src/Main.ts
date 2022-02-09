@@ -1,9 +1,9 @@
 import whatsApp, { create, NotificationLanguage } from "@open-wa/wa-automate";
 import Eris from "eris";
 import Events from "./RunEvents";
-import express, { Request, Response } from "express"
+import express, { Request, Response } from "express";
 import moment from "moment-timezone";
-import settings from "./JSON/settings.json"
+import settings from "./JSON/settings.json";
 
 type err = {
     stack: string;
@@ -46,12 +46,12 @@ async function initClients() {
         authTimeout: 60,
         blockCrashLogs: true,
         disableSpins: false, // remove expansive logs
-        headless: false, // hide chromium window
+        headless: true, // hide chromium window
         hostNotificationLang: NotificationLanguage.PTBR,
         logConsole: false,
         popup: false,
         qrTimeout: 0,
-    })
+    });
 
     //@ts-ignore
     const discord: Eris.Client = (new Eris(`Bot ${settings.discord.BOT_TOKEN}`, {
@@ -60,7 +60,7 @@ async function initClients() {
     } as Eris.ClientOptions))
         .on("ready", () => {
             console.log('GATEWAY', `Sessão iniciada como ${discord.user.username}#${discord.user.discriminator}`, 33);
-            discord.editStatus('dnd', { type: 3, name: 'o celular do Legend caindo na privada'});
+            discord.editStatus('dnd', { type: 3, name: 'o celular do Legend caindo na privada' });
         })
         .on("error", (err: Error) => console.log('DISCORD', String(err.stack).slice(0, 256), 41));
     await discord.connect();

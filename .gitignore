@@ -2,8 +2,9 @@
 node_modules/
 dist/
 .git/
-_IGNORE_client/
+**_IGNORE_**
 
 # Arquivos
 src/JSON/settings.json
-client.data.json
+**.data.json
+**.node-persist**
