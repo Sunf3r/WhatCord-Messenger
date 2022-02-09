@@ -1,0 +1,7 @@
+# Pastas
+node_modules/
+dist/
+.git/
+
+# Arquivos
+src/JSON/settings.json
