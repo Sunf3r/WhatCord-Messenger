@@ -26,12 +26,19 @@ export default class Events {
     }
 
     async WhatsAppMessageCreate(message: WhatsApp.Message) {
-        if (message.text === 'getID' && message.sender.id.replace('@c.us', '') !== whatsApp.OWNER_NUMBER) {
-            this.groupID = message.chatId;
-            return console.info(`ID of ${message.chat.name}: ${message.chatId}`);
+        if (message.text === 'getID') {
+            console.info(`ID of ${message.chat.name}: "${message.chatId}"`);
+            return message.sender.id.replace('@c.us', '') !== whatsApp.OWNER_NUMBER
+                ? this.groupID = message.chatId
+                : null;
+        }
+        if (message.chatId != this.groupID) return;
+
+        if (message.isMedia) {
+
         }
 
-        if (message.chatId != this.groupID) return;
+        if (message.text === 'teste') return console.log(message)
 
         return this.discord.executeWebhook(discord.WEBHOOK.ID, discord.WEBHOOK.TOKEN, {
             content: message.text || "```diff\n- Conteúdo desconhecido```",
