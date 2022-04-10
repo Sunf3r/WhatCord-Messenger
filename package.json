@@ -10,7 +10,7 @@
         "npm": "6.14.16"
     },
     "scripts": {
-        "build": "echo Building Application... && tsc",
+        "build": "echo Building Application... && npx typescript",
         "start": "npm run build && npm run noCompile",
         "noCompile": "echo Starting Application... && node --expose-gc build/Main.js",
         "dev": "echo Starting Application in Development Mode... && node --expose-gc build/Main.js --dev"
