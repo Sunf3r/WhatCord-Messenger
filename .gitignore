@@ -1,10 +1,20 @@
-# Pastas
-node_modules/
-dist/
-.git/
-**_IGNORE_**
-
-# Arquivos
+# Settings
 src/JSON/settings.json
-**.data.json
+
+# Modules
 **.node-persist**
+node_modules/
+**.data.json
+**_IGNORE_**
+.yarn/*
+.pnp.*
+build/
+test/
+dist/
+
+
+# Logs / Lokefiles
+*lock.json
+*.lock
+*.log
+logs/

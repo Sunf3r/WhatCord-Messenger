@@ -1,80 +1,91 @@
 import whatsApp, { create, NotificationLanguage } from "@open-wa/wa-automate";
-import Eris from "eris";
+import Eris, { Client, ClientOptions } from "eris";
 import Events from "./RunEvents";
-import express, { Request, Response } from "express";
 import moment from "moment-timezone";
 import settings from "./JSON/settings.json";
+import Prototypes from "./Components/Core/Prototypes";
 
-type err = {
-    stack: string;
-    message: string;
-}
-type colorChoices = 1 | 2 | 3 | 4 | 7 | 8 | 9 | 21 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 52 | 90 | 91 | 92 | 93 | 94 | 95 | 96 | 97 | 100 | 101 | 102 | 103 | 104 | 105 | 106 | 107;
 console.log = function () {
-    moment.locale("pt-BR");
-    let args: any[] = Object.entries(arguments).map(([_key, value]) => value),
-        color: colorChoices = isNaN(args[args.length - 1]) ? 1 : args.pop(),
-        setor: null | string = String(args[0]).split('/')[0].toUpperCase() === String(args[0]).split('/')[0]
-            ? args.shift()
-            : null,
-        str: string = `[ ${setor} | ${moment.tz(Date.now(), "America/Bahia").format("LT")}/${Math.floor(process.memoryUsage().rss / 1024 / 1024)}MB ] - ${args.join(' ')}`;
+    let args = [...arguments];
 
-    if (!setor) return console.info(args[0]);
-    if (!process.argv.includes('--dev')) return console.info(str);
+    if (args[1] && typeof args[args.length - 1] !== 'number')
+        return console.info(eval(args.map((_a, index) => `args[${index}]`).join(', ')));
+
+    moment.locale("pt-BR");
+    let color = args.pop(),
+        str = `[ ${args.shift()} | ${moment.tz(Date.now(), "America/Bahia").format("LT")}/${Math.floor(process.memoryUsage().rss / 1024 / 1024)}MB ] - ${args.join(' ')}`;
+
     return console.info(`\x1B[${color}m${str}\x1B[0m`);
 }
 console.error = function () {
-    return console.log('ANTI-CRASH', 'ERRO GENÉRICO:', String(arguments['0'].stack).slice(0, 256), 41);
+    return console.log('ANTI-CRASH', 'ERRO GENÉRICO:', String(arguments['0'].stack).slice(0, 512), 31);
 }
 
 console.clear();
 console.log('SYSTEM', "Iniciando aplicações", 46);
 
-/* Iniciando servidor express */
-const app = express();
-app.get("/", (req: Request, res: Response) => res.sendStatus(200));
-app.listen(process.env.PORT);
-
 initClients()
     .catch((e: Error) => console.error(e));
 
-
 async function initClients() {
+    Prototypes();
+    const isDev = process.argv.includes('--dev');
+
     const whatsappClient = await create({
         sessionId: "client",
+        restartOnCrash: true,
         multiDevice: true,
         authTimeout: 60,
         blockCrashLogs: true,
         disableSpins: false, // remove expansive logs
-        headless: true, // hide chromium window
+        headless: false, // hide chromium window
         hostNotificationLang: NotificationLanguage.PTBR,
-        logConsole: false,
+        logConsole: true,
         popup: false,
-        qrTimeout: 0,
+        qrTimeout: 0
     });
 
-    //@ts-ignore
-    const discord: Eris.Client = (new Eris(`Bot ${settings.discord.BOT_TOKEN}`, {
-        intents: ['guilds', 'guildMessages'],
+    const discord: Client = new Client(`Bot ${settings.discord.BOT_TOKEN}`, {
+        intents: ['guilds', 'guildMessages', 'guildWebhooks'],
         maxShards: 1
-    } as Eris.ClientOptions))
+    } as ClientOptions)
         .on("ready", () => {
-            console.log('GATEWAY', `Sessão iniciada como ${discord.user.username}#${discord.user.discriminator}`, 33);
+            console.log('GATEWAY', `Sessão iniciada como ${discord.user.tag}`, 33);
             discord.editStatus('dnd', { type: 3, name: 'o celular do Legend caindo na privada' });
         })
         .on("error", (err: Error) => console.log('DISCORD', String(err.stack).slice(0, 256), 41));
+
     await discord.connect();
 
+    let EventEmmiter = new Events(discord, whatsappClient);
+    whatsappClient.onAnyMessage(async (message: whatsApp.Message) => {
+        if (isDev) {
+            delete require.cache[require.resolve('./RunEvents')];
+            EventEmmiter = new (require('./RunEvents'))(discord, whatsappClient);
+        }
 
-    const EventEmmiter = new Events(discord, whatsappClient);
-    whatsappClient.onMessage(async (message: whatsApp.Message) => EventEmmiter.WhatsAppMessageCreate(message));
-    discord.on("messageCreate", (message: Eris.Message) => EventEmmiter.DiscordMessageCreate(message));
+        EventEmmiter.WhatsAppMessageCreate(message)
+    });
+    discord.on("messageCreate", (message: Eris.Message) => {
+        if (isDev) {
+            delete require.cache[require.resolve('./RunEvents')];
+            EventEmmiter = new (require('./RunEvents'))(discord, whatsappClient);
+        }
+
+        EventEmmiter.DiscordMessageCreate(message);
+    });
+
+    return;
 }
 
 process
-    .on('unhandledRejection', (error: err) => console.log('SCRIPT REJEITADO: ', String(error.stack.slice(0, 256)), 41))
-    .on("uncaughtException", (error: err) => console.log('ERRO CAPTURADO: ', String(error.stack.slice(0, 256)), 41))
-    .on('uncaughtExceptionMonitor', (error: err) => console.log('BLOQUEADO: ', String(error.stack.slice(0, 256)), 41));
+    .on('SIGINT', async () => {
+        console.log('CLIENT', 'Encerrando...', 33);
+        process.exit();
+    })
+    .on('unhandledRejection', (error: Error) => console.log('ANTI-CRASH', 'SCRIPT REJEITADO: ', String(error.stack).slice(0, 512), 31))
+    .on("uncaughtException", (error: Error) => console.log('ANTI-CRASH', 'ERRO CAPTURADO: ', String(error.stack).slice(0, 512), 31))
+    .on('uncaughtExceptionMonitor', (error: Error) => console.log('ANTI-CRASH', 'BLOQUEADO: ', String(error.stack).slice(0, 512), 31));
 
 /**
 * TONS DE BRANCO E CINZA
