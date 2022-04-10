@@ -1,10 +1,14 @@
 {
     "name": "whatcord-messenger",
-    "version": "0.0.4",
+    "version": "0.1.0",
     "author": "Heryson1616",
     "packageManager": "yarn@3.2.0",
     "description": "A simple bot that sends messages from a group on WhatsApp to Discord (and vice versa)",
     "main": "build/Main.js",
+    "engines": {
+        "node": "14.19.1",
+        "npm": "6.14.16"
+    },
     "scripts": {
         "build": "echo Building Application... && tsc",
         "start": "npm run build && npm run noCompile",
