@@ -1,21 +1,24 @@
-import WhatsApp, { decryptMedia } from "@open-wa/wa-automate";
 import Eris, { Attachment, Collection, WebhookPayload } from "eris";
+import { FixedSender } from "./Components/Typings/modules";
 import { whatsApp, discord } from "./JSON/settings.json";
 import { inspect } from "util";
-const uaOverride = 'WhatsApp/2.2029.4 Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'
+import mime = require('mime-types');
+import venom from "venom-bot";
+import axios from "axios";
+import fs from "fs";
 
 export default module.exports = class Events {
     discord: Eris.Client;
-    whatsapp: WhatsApp.Client;
-    groupID: WhatsApp.ChatId | string;
-    wppMessages: Collection<WhatsApp.Message>;
+    wpp: venom.Whatsapp;
+    groupID: string;
+    msgs: Collection<venom.Message>;
 
-    constructor(discord: Eris.Client, whatsapp: WhatsApp.Client) {
+    constructor(discord: Eris.Client, whatsapp: venom.Whatsapp) {
         this.discord = discord;
-        this.whatsapp = whatsapp;
+        this.wpp = whatsapp;
         this.groupID = whatsApp.GROUP_ID;
-        //@ts-ignoreLl
-        this.wppMessages = new Collection(null, 50);
+        //@ts-ignore
+        this.msgs = new Collection(null, 50);
     }
 
     async DiscordMessageCreate(message: Eris.Message) {
@@ -24,9 +27,8 @@ export default module.exports = class Events {
             reply;
 
         if (message.referencedMessage)
-            reply = this.wppMessages
-                .filter(m => !!m.text)
-                .reverse()
+            reply = this.msgs
+                .filter(m => !!m.text).reverse()
                 .find(msg =>
                     msg.text.startsWith('\u200b ')
                         ? msg.text.split('\n')[1] === message.referencedMessage?.content
@@ -43,42 +45,60 @@ export default module.exports = class Events {
         return;
     }
 
-    async WhatsAppMessageCreate(message: WhatsApp.Message) {
-        if (message.text === 'getID') {
-            console.info(`ID of "${message.chat.name}": "${message.chatId}"`);
-            return message.sender.id.replace('@c.us', '') === whatsApp.OWNER_NUMBER
-                ? this.groupID = message.chatId
+    async WhatsAppMessageCreate(message: venom.Message) {
+        let { id, chat, type, mimetype } = message as venom.Message,
+            //@ts-ignore o objeto de Message#Sender está incompleto e errado
+            // esse novo tipo vai substituir o tipo original
+            sender = message.sender as FixedSender,
+            text = String(message.text).slice(0, 1980),
+            isMedia = type !== 'chat' || message.isMedia ? true : false,
+            // o objeto quotedMsgObj é declarado com o tipo never
+            // e por isso ele fica sem propriedades
+            quotedMsgObj = message.quotedMsgObj ? message.quotedMsgObj as venom.Message : null,
+            senderPfp = sender?.profilePicThumbObj?.imgFull || await this.wpp.getProfilePicFromServer(sender.id) || '',
+            senderName = sender?.pushname || sender?.displayName || sender?.formattedName || "Nome desconhecido";
+
+        if (text === 'getID') {
+            console.info(`ID of "${chat.name}": "${chat.id}"`);
+            return sender.id.replace('@c.us', '') === whatsApp.OWNER_NUMBER
+                ? this.groupID = chat.id
                 : null;
         }
-        if (message.chatId != this.groupID) return;
+        if (chat.id != this.groupID) return;
         //@ts-ignore
-        this.wppMessages.set(message.id, { id: message.id, text: message.text });
+        this.msgs.set(this.msgs.size, { id, text });
 
-        if (message.text.startsWith('\u200b ')) return;
-
+        if (text.startsWith('\u200b ')) return;
+        
         let msgObj: WebhookPayload = {
-            content: !message.isMedia ? message.text || '```diff\n- Conteúdo desconhecido```' : message.text,
-            avatarURL: message.sender.profilePicThumbObj.imgFull || '',
-            username: message.sender.pushname || message.sender.name || message.sender.formattedName || "Nome desconhecido",
+            content: !isMedia ? text || '```diff\n- Anexo```' : text,
+            avatarURL: senderPfp,
+            username: senderName,
             embeds: [],
             file: undefined
-        }
-
-        if (message.isMedia || message.type === 'sticker')
+        };
+        
+        if (isMedia)
             msgObj.file = {
-                name: `anexo.${String(message.mimetype).split('/')[1]}`,
-                file: (await decryptMedia(message, uaOverride))
+                name: `anexo.${mime.extension(mimetype)}`,
+                file: (await this.wpp.decryptFile(message))
             };
 
-        if (message.quotedMsg) {
-            let { text, sender } = message.quotedMsg;
+        if (quotedMsgObj) {
+            let text = String(quotedMsgObj.text).slice(0, 1980),
+                //@ts-ignore
+                sender: FixedSender = quotedMsgObj.sender;
+
+            let senderPfp = sender?.profilePicThumbObj?.imgFull || await this.wpp.getProfilePicFromServer(sender.id) || '',
+                senderName = sender?.pushname || sender?.displayName || sender?.formattedName || "Nome desconhecido";
+
             msgObj.embeds = [{
                 color: parseInt('ff0000', 16),
                 author: {
                     name: text.startsWith('\u200b ')
                         ? text.split('\n')[0]
-                        : sender.pushname || sender.name || sender.formattedName || "Nome desconhecido",
-                    icon_url: sender.profilePicThumbObj.imgFull || ''
+                        : senderName,
+                    icon_url: senderPfp
                 },
                 description: text.startsWith('\u200b ') ? text.split('\n')[1] : text
             }]
@@ -89,17 +109,23 @@ export default module.exports = class Events {
         return;
     }
 
-    async sendMessage(chatId: WhatsApp.ChatId | string, content: string, anexo?: Attachment, reply?: WhatsApp.Message) {
+    async sendMessage(chatId: string, content: string, anexo?: Attachment, reply?: venom.Message) {
         content = `\u200b ${content}`;
 
-        if (anexo)
-            return await this.whatsapp
-                .sendFileFromUrl(chatId as WhatsApp.ChatId, anexo.url, anexo.filename, content, reply ? reply.id : undefined);
+        if (anexo) {
+            // fs.writeFileSync(`/media/${anexo.filename}`, await axios.get(anexo.url))
+
+            await this.wpp
+                .sendFile(chatId, anexo.url, anexo.filename, content)
+
+            return;
+        }
+
 
         if (reply)
-            return await this.whatsapp.reply(chatId as WhatsApp.ChatId, content, reply.id)
+            return await this.wpp.reply(chatId, content, reply.id);
 
-        await this.whatsapp.sendText(chatId as WhatsApp.ChatId, content);
+        await this.wpp.sendText(chatId, content);
 
         return;
     }

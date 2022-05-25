@@ -1,17 +1,19 @@
 # Settings
 src/JSON/settings.json
+src/temp/**/*
+tokens/
 
 # Modules
 **.node-persist**
 node_modules/
 **.data.json
 **_IGNORE_**
+.vscode/
 .yarn/*
 .pnp.*
 build/
 test/
 dist/
-
 
 # Logs / Lokefiles
 *lock.json

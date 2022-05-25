@@ -1,6 +1,6 @@
 {
     "name": "whatcord-messenger",
-    "version": "0.1.0",
+    "version": "0.1.2",
     "author": "Heryson1616",
     "packageManager": "yarn@3.2.0",
     "description": "A simple bot that sends messages from a group on WhatsApp to Discord (and vice versa)",
@@ -10,10 +10,10 @@
         "npm": "6.14.16"
     },
     "scripts": {
-        "build": "echo Building Application... && npx typescript",
-        "start": "npm run build && npm run noCompile",
-        "noCompile": "echo Starting Application... && node --expose-gc build/Main.js",
-        "dev": "echo Starting Application in Development Mode... && node --expose-gc build/Main.js --dev"
+        "build": "echo Building Application... && yarn tsc",
+        "start": "yarn build && yarn noCompile",
+        "noCompile": "echo Starting Application... && yarn node --expose-gc build/Main.js",
+        "dev": "echo Starting Application in Development Mode... && yarn node --expose-gc build/Main.js --dev"
     },
     "repository": "git+https://github.com/Heryson1616/WhatCord-Messenger.git",
     "keywords": [
@@ -28,11 +28,17 @@
     },
     "homepage": "https://github.com/Heryson1616/WhatCord-Messenger#readme",
     "dependencies": {
-        "@open-wa/wa-automate": "^4.34.0",
+        "axios": "^0.26.1",
         "eris": "^0.16.1",
-        "moment-timezone": "^0.5.34"
+        "mime-types": "^2.1.35",
+        "moment-timezone": "^0.5.34",
+        "puppeteer-extra-plugin-stealth": "^2.9.0",
+        "puppeteer-extra-plugin-user-data-dir": "^2.3.1",
+        "puppeteer-extra-plugin-user-preferences": "^2.3.1",
+        "venom-bot": "^4.0.10"
     },
     "devDependencies": {
+        "@types/mime-types": "^2.1.1",
         "@types/node": "^17.0.23",
         "typescript": "^4.6.3"
     }
