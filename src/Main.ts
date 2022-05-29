@@ -14,93 +14,15 @@ initClients()
 async function initClients() {
     const isDev = process.argv.includes('--dev');
 
-    const wpp = await create(
-        //session
-        'whatcord',
-        //catchQR
-        (b64Str, qrCode, attempts, urlCode) => { },
-        // statusFind
-        (status, session) => {
-            console.log(String(session).toUpperCase(), `Status da sessão ${session}:`, status, 33)
-            // isLogged || notLogged || browserClose || qrReadSuccess || qrReadFail || autocloseCalled || desconnectedMobile || deleteToken || chatsAvailable || deviceNotConnected || serverWssNotConnected || noOpenBrowser || initBrowser || openBrowser || connectBrowserWs || initWhatsapp || erroPageWhatsapp || successPageWhatsapp || waitForLogin || waitChat || successChat
-            //Create session wss return "serverClose" case server for close
-        },
-        // options
+    const wpp = await create('whatcord',
+        undefined,
+        undefined,
+        // (status, session) => console.log(String(session).toUpperCase(), `Status da sessão ${session}:`, status, 33),
         {
-            multidevice: true, // for version not multidevice use false.(default: true)
-            folderNameToken: 'tokens', //folder name when saving tokens
-            mkdirFolderToken: '', //folder directory tokens, just inside the venom folder, example:  { mkdirFolderToken: '/node_modules', } //will save the tokens folder in the node_modules directory
-            headless: false, // Headless chrome
-            devtools: false, // Open devtools by default
-            useChrome: true, // If false will use Chromium instance
-            debug: false, // Opens a debug session
-            logQR: true, // Logs QR automatically in terminal
-            browserArgs: [
-                '--no-zygote',
-                '--log-level=3',
-                '--disable-site-isolation-trials',
-                '--no-experiments',
-                '--ignore-gpu-blacklist',
-                '--ignore-certificate-errors',
-                '--ignore-certificate-errors-spki-list',
-                '--disable-gpu',
-                '--disable-extensions',
-                '--disable-default-apps',
-                '--enable-features=NetworkService',
-                '--disable-setuid-sandbox',
-                '--no-sandbox',
-                '--disable-webgl',
-                '--disable-infobars',
-                '--window-position=0,0',
-                '--ignore-certifcate-errors',
-                '--ignore-certifcate-errors-spki-list',
-                '--disable-threaded-animation',
-                '--disable-threaded-scrolling',
-                '--disable-in-process-stack-traces',
-                '--disable-histogram-customizer',
-                '--disable-gl-extensions',
-                '--disable-composited-antialiasing',
-                '--disable-canvas-aa',
-                '--disable-3d-apis',
-                '--disable-accelerated-2d-canvas',
-                '--disable-accelerated-jpeg-decoding',
-                '--disable-accelerated-mjpeg-decode',
-                '--disable-app-list-dismiss-on-blur',
-                '--disable-accelerated-video-decode',
-                '--disable-dev-shm-usage',
-                '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36',
-                '--aggressive-cache-discard',
-                '--disable-cache',
-                '--disable-gl-drawing-for-tests',
-                '--disable-application-cache',
-                '--disable-offline-load-stale-cache',
-                '--disk-cache-size=0'
-            ], //Original parameters  ---Parameters to be added into the chrome browser instance
-            puppeteerOptions: {}, // Will be passed to puppeteer.launch
-            disableSpins: true, // Will disable Spinnies animation, useful for containers (docker) for a better log
-            disableWelcome: true, // Will disable the welcoming message which appears in the beginning
-            updatesLog: true, // Logs info updates automatically in terminal
-            autoClose: 60000, // Automatically closes the venom-bot only when scanning the QR code (default 60 seconds, if you want to turn it off, assign 0 or false)
-            createPathFileToken: false, // creates a folder when inserting an object in the client's browser, to work it is necessary to pass the parameters in the function create browserSessionToken
-            // addProxy: [''], // Add proxy server exemple : [e1.p.webshare.io:01, e1.p.webshare.io:01]
-            // userProxy: '', // Proxy login username
-            // userPass: '' // Proxy password
-        },
-        // BrowserSessionToken
-        // To receive the client's token use the function await clinet.getSessionTokenBrowser()
-        {
-            WABrowserId: '"UnXjH....."',
-            WASecretBundle:
-                '{"key":"+i/nRgWJ....","encKey":"kGdMR5t....","macKey":"+i/nRgW...."}',
-            WAToken1: '"0i8...."',
-            WAToken2: '"1@lPpzwC...."'
-        },
-        // BrowserInstance
-        (browser, page) => {
-            if (typeof browser !== 'string' && typeof page !== 'boolean') {
-                console.log('Browser PID:', browser.process()!.pid);
-                page.screenshot({ path: 'src/temp/screenshot.png' });
-            }
+            multidevice: true,
+            headless: false,
+            useChrome: false,
+            logQR: true
         }
     )
 

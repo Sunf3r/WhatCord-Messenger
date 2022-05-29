@@ -9,7 +9,6 @@ node_modules/
 **.data.json
 **_IGNORE_**
 .vscode/
-.yarn/*
 .pnp.*
 build/
 test/

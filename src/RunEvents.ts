@@ -1,33 +1,31 @@
-import Eris, { Attachment, Collection, WebhookPayload } from "eris";
+import Eris, { Attachment, WebhookPayload } from "eris";
 import { FixedSender } from "./Components/Typings/modules";
 import { whatsApp, discord } from "./JSON/settings.json";
 import { inspect } from "util";
 import mime = require('mime-types');
 import venom from "venom-bot";
-import axios from "axios";
-import fs from "fs";
+// import axios from "axios";
+// import fs from "fs";
 
 export default module.exports = class Events {
     discord: Eris.Client;
     wpp: venom.Whatsapp;
     groupID: string;
-    msgs: Collection<venom.Message>;
 
     constructor(discord: Eris.Client, whatsapp: venom.Whatsapp) {
         this.discord = discord;
         this.wpp = whatsapp;
         this.groupID = whatsApp.GROUP_ID;
-        //@ts-ignore
-        this.msgs = new Collection(null, 50);
     }
 
     async DiscordMessageCreate(message: Eris.Message) {
         if (message.author.bot || message.channel.id !== discord.CHANNEL_ID) return;
+
         let msgContent = `*${message.author.username}*:\n${message.cleanContent}`,
             reply;
 
         if (message.referencedMessage)
-            reply = this.msgs
+            reply = (await this.wpp.getAllMessagesInChat(this.groupID, true, true))
                 .filter(m => !!m.text).reverse()
                 .find(msg =>
                     msg.text.startsWith('\u200b ')
@@ -41,12 +39,11 @@ export default module.exports = class Events {
         }
 
         await this.sendMessage(this.groupID, msgContent, message.attachments[0], reply);
-
         return;
     }
 
     async WhatsAppMessageCreate(message: venom.Message) {
-        let { id, chat, type, mimetype } = message as venom.Message,
+        let { chat, type, mimetype } = message as venom.Message,
             //@ts-ignore o objeto de Message#Sender está incompleto e errado
             // esse novo tipo vai substituir o tipo original
             sender = message.sender as FixedSender,
@@ -60,16 +57,13 @@ export default module.exports = class Events {
 
         if (text === 'getID') {
             console.info(`ID of "${chat.name}": "${chat.id}"`);
-            return sender.id.replace('@c.us', '') === whatsApp.OWNER_NUMBER
+            return sender.id.replace('@c.us', '') == whatsApp.OWNER_NUMBER
                 ? this.groupID = chat.id
                 : null;
         }
-        if (chat.id != this.groupID) return;
-        //@ts-ignore
-        this.msgs.set(this.msgs.size, { id, text });
 
-        if (text.startsWith('\u200b ')) return;
-        
+        if (chat.id != this.groupID || text.startsWith('\u200b ')) return;
+
         let msgObj: WebhookPayload = {
             content: !isMedia ? text || '```diff\n- Anexo```' : text,
             avatarURL: senderPfp,
@@ -77,7 +71,7 @@ export default module.exports = class Events {
             embeds: [],
             file: undefined
         };
-        
+
         if (isMedia)
             msgObj.file = {
                 name: `anexo.${mime.extension(mimetype)}`,
@@ -85,6 +79,11 @@ export default module.exports = class Events {
             };
 
         if (quotedMsgObj) {
+            quotedMsgObj = (await this.wpp.getAllMessagesInChat(message.chat.id, true, true))
+                .map(a => a).reverse().find(msg => msg.body === quotedMsgObj?.body && msg.type === quotedMsgObj.type)!;
+
+            if (!quotedMsgObj) return;
+
             let text = String(quotedMsgObj.text).slice(0, 1980),
                 //@ts-ignore
                 sender: FixedSender = quotedMsgObj.sender;
@@ -105,28 +104,20 @@ export default module.exports = class Events {
         }
 
         this.discord.executeWebhook(discord.WEBHOOK.ID, discord.WEBHOOK.TOKEN, msgObj);
-
         return;
     }
 
     async sendMessage(chatId: string, content: string, anexo?: Attachment, reply?: venom.Message) {
         content = `\u200b ${content}`;
 
-        if (anexo) {
-            // fs.writeFileSync(`/media/${anexo.filename}`, await axios.get(anexo.url))
-
-            await this.wpp
+        if (anexo)
+            return await this.wpp
                 .sendFile(chatId, anexo.url, anexo.filename, content)
-
-            return;
-        }
 
 
         if (reply)
             return await this.wpp.reply(chatId, content, reply.id);
 
-        await this.wpp.sendText(chatId, content);
-
-        return;
+        return this.wpp.sendText(chatId, content);
     }
 }
