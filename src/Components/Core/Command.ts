@@ -1,4 +1,4 @@
-import { Whatsapp } from "venom-bot";
+import { Whatsapp, Message } from "venom-bot";
 
 export default abstract class command implements Command {
     names!: string[];
@@ -7,6 +7,6 @@ export default abstract class command implements Command {
         this.wpp = wpp;
     }
 
-    abstract execute(args: string[]): Promise<void>;
+    abstract execute(message: Message, args: string[], reply: Function): Promise<void>;
 
 }

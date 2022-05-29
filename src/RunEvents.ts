@@ -4,8 +4,6 @@ import { whatsApp, discord } from "./JSON/settings.json";
 import { inspect } from "util";
 import mime = require('mime-types');
 import venom from "venom-bot";
-// import axios from "axios";
-// import fs from "fs";
 
 export default module.exports = class Events {
     discord: Eris.Client;
@@ -38,12 +36,12 @@ export default module.exports = class Events {
             return message.channel.createMessage(`\`\`\`js\n${String(inspect(evaled)).slice(0, 1800)}\`\`\``);
         }
 
-        await this.sendMessage(this.groupID, msgContent, message.attachments[0], reply);
+        this.sendMessage(this.groupID, msgContent, message.attachments[0], reply);
         return;
     }
 
     async WhatsAppMessageCreate(message: venom.Message) {
-        let { chat, type, mimetype } = message as venom.Message,
+        let { id, chat, type, mimetype } = message as venom.Message,
             //@ts-ignore o objeto de Message#Sender está incompleto e errado
             // esse novo tipo vai substituir o tipo original
             sender = message.sender as FixedSender,
@@ -80,7 +78,8 @@ export default module.exports = class Events {
 
         if (quotedMsgObj) {
             quotedMsgObj = (await this.wpp.getAllMessagesInChat(message.chat.id, true, true))
-                .map(a => a).reverse().find(msg => msg.body === quotedMsgObj?.body && msg.type === quotedMsgObj.type)!;
+                .map(a => a).reverse()
+                .find(msg => msg.body === quotedMsgObj?.body && msg.type === quotedMsgObj.type)!;
 
             if (!quotedMsgObj) return;
 
@@ -101,6 +100,15 @@ export default module.exports = class Events {
                 },
                 description: text.startsWith('\u200b ') ? text.split('\n')[1] : text
             }]
+        }
+
+        const reply = (body: string, template: 'warn' | 'correct', e: string = '') => {
+            if (body.includes('|')) {
+                let s = body.split('|')
+                body = `${e} *${s[0]}* ${e}\n\n${s.slice(1).join(' ')}`
+            }
+
+            this.wpp.reply(chat.id, body, id);
         }
 
         this.discord.executeWebhook(discord.WEBHOOK.ID, discord.WEBHOOK.TOKEN, msgObj);
