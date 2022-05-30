@@ -20,7 +20,7 @@ async function initClients() {
         // (status, session) => console.log(String(session).toUpperCase(), `Status da sessão ${session}:`, status, 33),
         {
             multidevice: true,
-            headless: false,
+            headless: true,
             useChrome: false,
             logQR: true
         }
