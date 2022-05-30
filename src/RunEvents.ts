@@ -1,7 +1,8 @@
-import Eris, { Attachment, WebhookPayload } from "eris";
+import Eris, { Attachment, FileContent, WebhookPayload } from "eris";
 import { FixedSender } from "./Components/Typings/modules";
 import { whatsApp, discord } from "./JSON/settings.json";
 import { inspect } from "util";
+import emojis from "./JSON/emojis.json";
 import mime = require('mime-types');
 import venom from "venom-bot";
 
@@ -45,7 +46,7 @@ export default module.exports = class Events {
             //@ts-ignore o objeto de Message#Sender está incompleto e errado
             // esse novo tipo vai substituir o tipo original
             sender = message.sender as FixedSender,
-            text = String(message.text).slice(0, 1980),
+            text = String(message.text || '').slice(0, 1980),
             isMedia = type !== 'chat' || message.isMedia ? true : false,
             // o objeto quotedMsgObj é declarado com o tipo never
             // e por isso ele fica sem propriedades
@@ -53,12 +54,8 @@ export default module.exports = class Events {
             senderPfp = sender?.profilePicThumbObj?.imgFull || await this.wpp.getProfilePicFromServer(sender.id) || '',
             senderName = sender?.pushname || sender?.displayName || sender?.formattedName || "Nome desconhecido";
 
-        if (text === 'getID') {
-            console.info(`ID of "${chat.name}": "${chat.id}"`);
-            return sender.id.replace('@c.us', '') == whatsApp.OWNER_NUMBER
-                ? this.groupID = chat.id
-                : null;
-        }
+        if (text === 'getID')
+            return console.info(`ID of "${chat.name}": "${chat.id}"`);
 
         if (chat.id != this.groupID || text.startsWith('\u200b ')) return;
 
@@ -67,14 +64,14 @@ export default module.exports = class Events {
             avatarURL: senderPfp,
             username: senderName,
             embeds: [],
-            file: undefined
+            file: []
         };
 
         if (isMedia)
-            msgObj.file = {
+            msgObj.file = [{
                 name: `anexo.${mime.extension(mimetype)}`,
                 file: (await this.wpp.decryptFile(message))
-            };
+            }];
 
         if (quotedMsgObj) {
             quotedMsgObj = (await this.wpp.getAllMessagesInChat(message.chat.id, true, true))
@@ -83,7 +80,7 @@ export default module.exports = class Events {
 
             if (!quotedMsgObj) return;
 
-            let text = String(quotedMsgObj.text).slice(0, 1980),
+            let text = String(quotedMsgObj.text || '').slice(0, 1980),
                 //@ts-ignore
                 sender: FixedSender = quotedMsgObj.sender;
 
@@ -91,7 +88,7 @@ export default module.exports = class Events {
                 senderName = sender?.pushname || sender?.displayName || sender?.formattedName || "Nome desconhecido";
 
             msgObj.embeds = [{
-                color: parseInt('ff0000', 16),
+                color: parseInt('53beea', 16),
                 author: {
                     name: text.startsWith('\u200b ')
                         ? text.split('\n')[0]
@@ -100,16 +97,27 @@ export default module.exports = class Events {
                 },
                 description: text.startsWith('\u200b ') ? text.split('\n')[1] : text
             }]
-        }
 
-        const reply = (body: string, template: 'warn' | 'correct', e: string = '') => {
-            if (body.includes('|')) {
-                let s = body.split('|')
-                body = `${e} *${s[0]}* ${e}\n\n${s.slice(1).join(' ')}`
+            if (quotedMsgObj.isMedia) {
+                (msgObj.file as FileContent[]).push({
+                    name: `anexo.${mime.extension(quotedMsgObj.mimetype)}`,
+                    file: (await this.wpp.decryptFile(quotedMsgObj))
+                });
+                msgObj.embeds[0].thumbnail = { url: `attachment://anexo.${mime.extension(quotedMsgObj.mimetype)}`}
             }
-
-            this.wpp.reply(chat.id, body, id);
         }
+
+        // const reply = (body: string, template: 'warn' | 'correct' | 0, e: string = '') => {
+        //     let title = body.split('|')[0],
+        //         desc = body.split('|')[1];
+
+        //     if (body.includes('|')) {
+        //         let s = body.split('|')
+        //         body = `${e} *${s[0]}* ${e}\n\n${s.slice(1).join(' ')}`
+        //     }
+
+        //     this.wpp.reply(chat.id, body, id);
+        // }
 
         this.discord.executeWebhook(discord.WEBHOOK.ID, discord.WEBHOOK.TOKEN, msgObj);
         return;
@@ -120,7 +128,7 @@ export default module.exports = class Events {
 
         if (anexo)
             return await this.wpp
-                .sendFile(chatId, anexo.url, anexo.filename, content)
+                .sendFile(chatId, anexo.proxy_url, anexo.filename, content);
 
 
         if (reply)
