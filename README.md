@@ -11,7 +11,6 @@ Someday I will update this again.
 ```bash
 git clone https://github.com/Heryson1616/WhatCord-Messenger
 cd WhatCord-Messenger
-npm i -g typescript
 npm install
 ```
 # Now configure the "src/JSON/settings.example.json" file
